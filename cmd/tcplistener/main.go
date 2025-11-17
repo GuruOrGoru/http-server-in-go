@@ -2,11 +2,11 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
+
+	"github.com/guruorgoru/http-server-in-go/internal/request"
 )
 
 func main() {
@@ -20,34 +20,11 @@ func main() {
 			log.Fatalln("error accepting the conenction", err)
 		}
 		reader := bufio.NewReader(conn)
-		lines := getLinesChannel(reader, conn)
-		for line := range lines {
-			fmt.Println(line)
+		requestData, err := request.RequestFromReader(reader)
+		if err != nil {
+			log.Fatalln("error while getting the request data from the reader:", err)
 		}
+		textToPrint := fmt.Sprintf("Request line:\n- Method: %v\n- Target: %v\n- Version: %v", requestData.RequestLine.Method, requestData.RequestLine.Target, requestData.RequestLine.HttpVersion)
+		fmt.Println(textToPrint)
 	}
-}
-
-func getLinesChannel(reader *bufio.Reader, f io.ReadCloser) <-chan string {
-	ch := make(chan string)
-	go func() {
-		defer func() {
-			err := f.Close()
-			if err != nil {
-				log.Fatalln("error closing file: ", err)
-			}
-		}()
-		defer close(ch)
-		for {
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					ch <- line
-					break
-				}
-				log.Fatalln("error reading from messages.txt file", err)
-			}
-			ch <-line
-		}
-	}()
-	return ch
 }

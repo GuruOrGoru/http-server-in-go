@@ -24,7 +24,11 @@ func main() {
 		if err != nil {
 			log.Fatalln("error while getting the request data from the reader:", err)
 		}
-		textToPrint := fmt.Sprintf("Request line:\n- Method: %v\n- Target: %v\n- Version: %v", requestData.RequestLine.Method, requestData.RequestLine.Target, requestData.RequestLine.HttpVersion)
+		textToPrint := fmt.Sprintf("Request line:\n- Method: %v\n- Target: %v\n- Version: %v\n\nHeaders:\n", requestData.RequestLine.Method, requestData.RequestLine.Target, requestData.RequestLine.HttpVersion)
+		for fieldName, fieldValue := range requestData.Headers {
+			textToPrint += fmt.Sprintf("- %v: %v\n", fieldName, fieldValue)
+		}
+		textToPrint += fmt.Sprintf("\nBody:\n%v", string(requestData.Body))
 		fmt.Println(textToPrint)
 	}
 }

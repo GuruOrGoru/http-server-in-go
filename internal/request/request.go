@@ -2,8 +2,12 @@ package request
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"strconv"
 	"strings"
+
+	"github.com/guruorgoru/http-server-in-go/internal/header"
 )
 
 type parsingState int
@@ -11,11 +15,13 @@ type parsingState int
 const (
 	InitState parsingState = iota
 	DoneState
+	HeaderState
+	BodyState
 )
 
 type Request struct {
 	RequestLine RequestLine
-	Header      map[string]string
+	Headers     header.Headers
 	Body        []byte
 	State       parsingState
 }
@@ -33,7 +39,8 @@ const (
 
 func RequestFromReader(r io.Reader) (*Request, error) {
 	request := &Request{
-		State: InitState,
+		State:   InitState,
+		Headers: header.NewHeaders(),
 	}
 	temporaryBuffer := make([]byte, 8)
 	internalBuffer := make([]byte, 0, 8)
@@ -54,22 +61,63 @@ func RequestFromReader(r io.Reader) (*Request, error) {
 		}
 		internalBuffer = internalBuffer[consumedByte:]
 	}
+	if val, ok := request.Headers["content-length"]; ok {
+		expcLength, _ := strconv.Atoi(val)
+		if len(request.Body) != expcLength {
+			return nil, errors.Join(fmt.Errorf("brutha, your content-length isnt equal to the body length(i.e %v != %v)", expcLength, len(request.Body)))
+		}
+	}
 	return request, nil
 }
 
 func (r *Request) parse(data []byte) (int, error) {
-	if r.State == DoneState {
+	switch r.State {
+	case InitState:
+		requestLine, bytesRead, err := requestLineParse(data)
+		if err != nil {
+			return 0, err
+		}
+		if requestLine != nil {
+			r.RequestLine = *requestLine
+			r.State = HeaderState
+		}
+		return bytesRead, err
+	case DoneState:
 		return 0, nil
+	case HeaderState:
+		n, done, err := r.Headers.Parse(data)
+		if err != nil {
+			return 0, err
+		}
+		if done {
+			r.State = BodyState
+		}
+		return n, nil
+	case BodyState:
+		v, ok := r.Headers["content-length"]
+		if !ok || v == "" {
+			r.State = DoneState
+			return 0, nil
+		}
+		iv, err := strconv.Atoi(v)
+		if err != nil {
+			return 0, err
+		}
+		remaining := iv - len(r.Body)
+		if remaining <= 0 {
+			r.State = DoneState
+			return 0, nil
+		}
+		toRead := min(len(data), remaining)
+		fullBody := data[:toRead]
+		r.Body = append(r.Body, fullBody...)
+		if len(r.Body) == iv {
+			r.State = DoneState
+		}
+		return toRead, nil
+	default:
+		panic("bruh your code sucks")
 	}
-	requestLine, bytesRead, err := requestLineParse(data)
-	if err != nil {
-		return 0, err
-	}
-	if requestLine != nil {
-		r.RequestLine = *requestLine
-		r.State = DoneState
-	}
-	return bytesRead, err
 }
 
 func requestLineParse(content []byte) (*RequestLine, int, error) {

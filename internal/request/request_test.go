@@ -62,9 +62,9 @@ func TestParseHeaders(t *testing.T) {
 	r, err := RequestFromReader(reader)
 	require.NoError(t, err)
 	require.NotNil(t, r)
-	assert.Equal(t, "localhost:42069", r.Headers["host"])
-	assert.Equal(t, "curl/7.81.0", r.Headers["user-agent"])
-	assert.Equal(t, "*/*", r.Headers["accept"])
+	assert.Equal(t, "localhost:42069", r.Headers.Get("hoST"))
+	assert.Equal(t, "curl/7.81.0", r.Headers.Get("usEr-aGent"))
+	assert.Equal(t, "*/*", r.Headers.Get("accept"))
 
 	// Test: Malformed Header
 	reader = &chunkReader{
@@ -81,8 +81,8 @@ func TestParseHeaders(t *testing.T) {
 	r, err = RequestFromReader(reader)
 	require.NoError(t, err)
 	require.NotNil(t, r)
-	assert.Equal(t, "localhost:42069,*/*", r.Headers["host"])
-	assert.Equal(t, "curl/7.81.0", r.Headers["user-agent"])
+	assert.Equal(t, "localhost:42069,*/*", r.Headers.Get("hoST"))
+	assert.Equal(t, "curl/7.81.0", r.Headers.Get("usEr-aGent"))
 
 	reader = &chunkReader{
 		data:            "GET / HTTP/1.1\r\nH@st: localhost:42069\r\n\r\n",

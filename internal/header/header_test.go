@@ -14,7 +14,7 @@ func TestParseFunc(t *testing.T) {
 	n, done, err := headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
-	assert.Equal(t, "localhost:42069", headers["host"])
+	assert.Equal(t, "localhost:42069", headers.Get("hOst"))
 	assert.Equal(t, 25, n)
 	assert.True(t, done)
 
@@ -32,7 +32,7 @@ func TestParseFunc(t *testing.T) {
 	n, done, err = headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
-	assert.Equal(t, "localhost:686886", headers["host"])
+	assert.Equal(t, "localhost:686886", headers.Get("HOST"))
 	assert.Equal(t, 55, n)
 	assert.False(t, done)
 
@@ -43,8 +43,8 @@ func TestParseFunc(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, headers)
 	assert.Equal(t, 42, n)
-	assert.Equal(t, "guruorgoru", headers["name"])
-	assert.Equal(t, "Yes", headers["hero"])
+	assert.Equal(t, "guruorgoru", headers.Get("NAME"))
+	assert.Equal(t, "Yes", headers.Get("heRO"))
 	assert.True(t, done)
 
 	// Test: The final boss 2.0
@@ -62,7 +62,7 @@ func TestParseFunc(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, headers)
 	assert.Equal(t, 49, n)
-	assert.Equal(t, "guruorgoru,nama,wtf", headers["name"])
+	assert.Equal(t, "guruorgoru,nama,wtf", headers.Get("NAme"))
 	assert.True(t, done)
 
 }

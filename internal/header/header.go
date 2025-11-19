@@ -40,10 +40,10 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 			return 0, false, errors.Join(errors.New("invalid character in the field-name"))
 		}
 		fieldValue := strings.TrimSpace(lines[colonIndex+2:])
-		if v, ok := h[fieldName]; ok {
-			h[fieldName] = fmt.Sprintf("%v,%v", v, fieldValue)
+		if v := h.Get(fieldName); v != "" {
+			h.Set(fieldName, fmt.Sprintf("%v,%v", v, fieldValue))
 		} else {
-			h[fieldName] = fieldValue
+			h.Set(fieldName, fieldValue)
 		}
 		consumed := clrfIndex + len(CLRF)
 		read += consumed
@@ -58,4 +58,12 @@ func NewHeaders() Headers {
 
 func isValidToken(s string) bool {
 	return tokenRe.MatchString(s)
+}
+
+func (h Headers) Get(key string) string {
+	return h[strings.ToLower(key)]
+}
+
+func (h Headers) Set(key, value string) {
+	h[strings.ToLower(key)] = value
 }

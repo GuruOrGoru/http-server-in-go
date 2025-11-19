@@ -48,6 +48,15 @@ func RequestFromReader(r io.Reader) (*Request, error) {
 		n, err := r.Read(temporaryBuffer)
 		if err != nil {
 			if err == io.EOF {
+				// Try to parse remaining buffer
+				consumedByte, err := request.parse(internalBuffer)
+				if err != nil {
+					return nil, err
+				}
+				internalBuffer = internalBuffer[consumedByte:]
+				if request.State != DoneState {
+					return nil, errors.New("connection closed before request was complete")
+				}
 				break
 			}
 			return nil, errors.Join(errors.New("Error reading to a buffer:"), err)
@@ -55,13 +64,19 @@ func RequestFromReader(r io.Reader) (*Request, error) {
 		if n > 0 {
 			internalBuffer = append(internalBuffer, temporaryBuffer[:n]...)
 		}
-		consumedByte, err := request.parse(internalBuffer)
-		if err != nil {
-			return nil, err
+		for request.State != DoneState {
+			consumedByte, err := request.parse(internalBuffer)
+			if err != nil {
+				return nil, err
+			}
+			if consumedByte == 0 {
+				break // Need some data my boii
+			}
+			internalBuffer = internalBuffer[consumedByte:]
+
 		}
-		internalBuffer = internalBuffer[consumedByte:]
 	}
-	if val, ok := request.Headers["content-length"]; ok {
+	if val := request.Headers.Get("content-length"); val != "" {
 		expcLength, _ := strconv.Atoi(val)
 		if len(request.Body) != expcLength {
 			return nil, errors.Join(fmt.Errorf("brutha, your content-length isnt equal to the body length(i.e %v != %v)", expcLength, len(request.Body)))
@@ -94,10 +109,11 @@ func (r *Request) parse(data []byte) (int, error) {
 		}
 		return n, nil
 	case BodyState:
-		v, ok := r.Headers["content-length"]
-		if !ok || v == "" {
+		v := r.Headers.Get("content-Length")
+		fmt.Println(v)
+		if v == "" {
 			r.State = DoneState
-			return 0, nil
+			return len(data), nil
 		}
 		iv, err := strconv.Atoi(v)
 		if err != nil {

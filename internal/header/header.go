@@ -65,5 +65,13 @@ func (h Headers) Get(key string) string {
 }
 
 func (h Headers) Set(key, value string) {
+	h[strings.ToLower(key)] += fmt.Sprintf("%s", value)
+}
+
+func (h Headers) Delete(key string) {
+	delete(h, strings.ToLower(key))
+}
+
+func (h Headers) Replace(key, value string) {
 	h[strings.ToLower(key)] = value
 }

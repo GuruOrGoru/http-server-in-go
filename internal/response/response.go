@@ -58,3 +58,13 @@ func (w *ResponseWriter) WriteHeaders(headers header.Headers) error {
 	_, err := w.Writer.Write([]byte(headerMsg))
 	return err
 }
+
+func (w *ResponseWriter) WriteTrailers(headers header.Headers) error {
+	headerMsg := ""
+	for name, value := range headers {
+		headerMsg += fmt.Sprintf("%v: %v\r\n", name, value)
+	}
+	headerMsg += "\r\n"
+	_, err := w.Writer.Write([]byte(headerMsg))
+	return err
+}

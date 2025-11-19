@@ -2,7 +2,7 @@ package server
 
 import (
 	"bufio"
-	"bytes"
+	"fmt"
 	"log"
 	"net"
 	"sync/atomic"
@@ -58,34 +58,10 @@ func (s *Server) handle(conn net.Conn) {
 		return
 	}
 
-	writeBuf := bytes.NewBuffer([]byte{})
-	respBuff := bytes.NewBuffer([]byte{})
-
-	hErr := s.handler(writeBuf, request)
-	if hErr != nil {
-		if err = response.WriteError(conn, hErr); err != nil {
-			log.Println("Error writing handling err:", err)
-		}
-		return
+	writer := &response.ResponseWriter{
+		Writer: conn,
 	}
-
-	if err = response.WriteStatusHeader(respBuff, response.StatusOkay); err != nil {
-		log.Println("Error writing statusLine:", err)
-		return
-
-	}
-
-	headers := response.GetDefaultHeaders(writeBuf.Len())
-	if err = response.WriteHeaders(respBuff, headers); err != nil {
-		log.Println("Error writing headers:", err)
-		return
-
-	}
-	respBuff.Write(writeBuf.Bytes())
-	if _, err = conn.Write(respBuff.Bytes()); err != nil {
-		log.Println("Error writing body:", err)
-		return
-	}
+	s.handler(writer, request)
 }
 
 func (s *Server) Close() error {

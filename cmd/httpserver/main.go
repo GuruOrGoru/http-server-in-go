@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -36,34 +35,29 @@ func main() {
 	log.Println("Server stopped gracefully")
 }
 
-func handleRoutes(w io.Writer, req *request.Request) *response.HandlingError {
-	log.Printf("Incoming request: %v %v\n", req.RequestLine.Method, req.RequestLine.Target)
+func handleRoutes(w *response.ResponseWriter, req *request.Request) {
+	log.Printf("Incoming request: %v %v", req.RequestLine.Method, req.RequestLine.Target)
 	switch strings.TrimSpace(req.RequestLine.Target) {
 	case "/":
-		_, err := w.Write([]byte("Hello There!"))
-		if err != nil {
-			return &response.HandlingError{
-				StatusCode: 500,
-				Msg:        "error writing data: " + err.Error(),
-			}
-		}
-		return nil
-
+		msg := "GuruOrGoru"
+		w.WriteStatusHeader(response.StatusOkay)
+		w.WriteHeaders(response.GetDefaultHeaders(len(msg)))
+		w.Writer.Write([]byte(msg))
 	case "/skillissues":
-		return &response.HandlingError{
-			StatusCode: 400,
-			Msg:        "you got skill issues",
-		}
+		msg := "You got some skill issues"
+		w.WriteStatusHeader(response.StatusBadReq)
+		w.WriteHeaders(response.GetDefaultHeaders(len(msg)))
+		w.Writer.Write([]byte(msg))
 	case "/myissues":
-		return &response.HandlingError{
-			StatusCode: 500,
-			Msg:        "i have skill issues :(",
-		}
+		msg := "Sorry, I got some skill issues"
+		w.WriteStatusHeader(response.StatusInternalServerError)
+		w.WriteHeaders(response.GetDefaultHeaders(len(msg)))
+		w.Writer.Write([]byte(msg))
 	default:
-		return &response.HandlingError{
-			StatusCode: 404,
-			Msg:        "page not found",
-		}
+		msg := "No route found in this server :("
+		w.WriteStatusHeader(response.StatusNotFound)
+		w.WriteHeaders(response.GetDefaultHeaders(len(msg)))
+		w.Writer.Write([]byte(msg))
 	}
 }
 

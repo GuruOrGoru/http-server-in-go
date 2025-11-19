@@ -9,14 +9,12 @@ import (
 )
 
 type (
-	Handler       func(w io.Writer, req *request.Request) *HandlingError
-	HandlingError struct {
-		StatusCode StatusCode
-		Msg        string
+	Handler        func(w *ResponseWriter, req *request.Request)
+	ResponseWriter struct {
+		Writer io.Writer
 	}
+	StatusCode int
 )
-
-type StatusCode int
 
 const (
 	StatusOkay                StatusCode = 200
@@ -25,7 +23,7 @@ const (
 	StatusNotFound            StatusCode = 404
 )
 
-func WriteStatusHeader(w io.Writer, statusCode StatusCode) error {
+func (w *ResponseWriter) WriteStatusHeader(statusCode StatusCode) error {
 	reason := ""
 	switch statusCode {
 	case StatusOkay:
@@ -39,7 +37,7 @@ func WriteStatusHeader(w io.Writer, statusCode StatusCode) error {
 	}
 
 	statusLine := fmt.Sprintf("HTTP/1.1 %v %v\r\n", statusCode, reason)
-	_, err := w.Write([]byte(statusLine))
+	_, err := w.Writer.Write([]byte(statusLine))
 	return err
 }
 
@@ -51,29 +49,12 @@ func GetDefaultHeaders(conLength int) header.Headers {
 	return newHeader
 }
 
-func WriteHeaders(w io.Writer, headers header.Headers) error {
+func (w *ResponseWriter) WriteHeaders(headers header.Headers) error {
 	headerMsg := ""
 	for name, value := range headers {
 		headerMsg += fmt.Sprintf("%v: %v\r\n", name, value)
 	}
 	headerMsg += "\r\n"
-	_, err := w.Write([]byte(headerMsg))
-	return err
-}
-
-func WriteError(w io.Writer, hErr *HandlingError) error {
-	if err := WriteStatusHeader(w, hErr.StatusCode); err != nil {
-		return err
-	}
-
-	errorMsg := fmt.Sprintf("Error:\n- Code: %v\n- Message: %v", hErr.StatusCode, hErr.Msg)
-
-	headers := GetDefaultHeaders(len(errorMsg))
-
-	if err := WriteHeaders(w, headers); err != nil {
-		return err
-	}
-
-	_, err := w.Write([]byte(errorMsg))
+	_, err := w.Writer.Write([]byte(headerMsg))
 	return err
 }
